@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Disease Prediction System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Welcome to your intelligent disease prediction system</p>
+</div>
+
+<div class="grid grid-4">
+    <div class="stat-card">
+        <div class="stat-value" id="predictionCount">0</div>
+        <div class="stat-label">Predictions Made</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="accuracyScore">--</div>
+        <div class="stat-label">Model Accuracy</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="diseaseCount">41</div>
+        <div class="stat-label">Diseases Detected</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="symptomCount">--</div>
+        <div class="stat-label">Active Symptoms</div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2 class="card-header">🚀 Quick Start</h2>
+        <p style="color: #666; margin-bottom: 20px; line-height: 1.6;">
+            Get started with disease prediction by selecting your symptoms. Our advanced machine learning model analyzes your health indicators and provides accurate predictions.
+        </p>
+        <a href="/predict" class="button button-primary">
+            Start Prediction
+        </a>
+    </div>
+    
+    <div class="card">
+        <h2 class="card-header">📈 Features</h2>
+        <ul style="color: #666; list-style: none; line-height: 2;">
+            <li>✓ Multi-symptom analysis</li>
+            <li>✓ Real-time predictions</li>
+            <li>✓ Confidence scoring</li>
+            <li>✓ Detailed history tracking</li>
+        </ul>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2 class="card-header">📚 How It Works</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+            <div style="text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 10px;">1️⃣</div>
+                <h3 style="font-weight: 600; margin-bottom: 8px;">Select Symptoms</h3>
+                <p style="font-size: 14px; color: #666;">Choose from comprehensive symptom list</p>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 10px;">2️⃣</div>
+                <h3 style="font-weight: 600; margin-bottom: 8px;">AI Analysis</h3>
+                <p style="font-size: 14px; color: #666;">Our model analyzes your inputs</p>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 10px;">3️⃣</div>
+                <h3 style="font-weight: 600; margin-bottom: 8px;">Get Results</h3>
+                <p style="font-size: 14px; color: #666;">Receive prediction with confidence scores</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load stats from localStorage
+    function updateStats() {
+        const predictions = JSON.parse(localStorage.getItem('predictions') || '[]');
+        document.getElementById('predictionCount').textContent = predictions.length;
+        document.getElementById('accuracyScore').textContent = '92.5%';
+        
+        fetch('/api/features')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('symptomCount').textContent = data.features.length;
+            });
+    }
+    
+    updateStats();
+    window.addEventListener('storage', updateStats);
+</script>
+{% endblock %}

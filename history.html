@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}History - Disease Prediction System{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    .history-table thead {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(240, 147, 251, 0.1));
+    }
+    
+    .history-table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--dark);
+        border-bottom: 2px solid var(--border);
+    }
+    
+    .history-table td {
+        padding: 15px;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .history-table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.05);
+    }
+    
+    .confidence-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    
+    .confidence-high {
+        background: rgba(40, 167, 69, 0.2);
+        color: var(--success);
+    }
+    
+    .confidence-medium {
+        background: rgba(245, 166, 35, 0.2);
+        color: var(--warning);
+    }
+    
+    .confidence-low {
+        background: rgba(220, 53, 69, 0.2);
+        color: var(--danger);
+    }
+    
+    .disease-link {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .disease-link:hover {
+        text-decoration: underline;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-delete {
+        background: rgba(220, 53, 69, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+    
+    .btn-delete:hover {
+        background: var(--danger);
+        color: white;
+    }
+    
+    .empty-history {
+        text-align: center;
+        padding: 60px 30px;
+        color: #999;
+    }
+    
+    .empty-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+    }
+    
+    .clear-all-btn {
+        margin-top: 20px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stats-item {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(240, 147, 251, 0.1));
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .stats-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 5px;
+    }
+    
+    .stats-label {
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.6);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Prediction History</h1>
+    <p class="page-subtitle">View all your previous predictions and results</p>
+</div>
+
+<div class="card">
+    <h2 class="card-header">📊 Statistics</h2>
+    <div class="stats-grid">
+        <div class="stats-item">
+            <div class="stats-value" id="totalPredictions">0</div>
+            <div class="stats-label">Total Predictions</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-value" id="averageConfidence">0%</div>
+            <div class="stats-label">Average Confidence</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-value" id="mostCommon">--</div>
+            <div class="stats-label">Most Common Disease</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card-header">📋 All Predictions</h2>
+    <div id="historyContent">
+        <div class="empty-history">
+            <div class="empty-icon">📭</div>
+            <p>No predictions yet. Start by making a prediction!</p>
+            <a href="/predict" class="button button-primary" style="margin-top: 20px; display: inline-block;">
+                Make First Prediction
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadHistory() {
+        const predictions = JSON.parse(localStorage.getItem('predictions') || '[]');
+        const container = document.getElementById('historyContent');
+        
+        if (predictions.length === 0) {
+            container.innerHTML = `
+                <div class="empty-history">
+                    <div class="empty-icon">📭</div>
+                    <p>No predictions yet. Start by making a prediction!</p>
+                    <a href="/predict" class="button button-primary" style="margin-top: 20px; display: inline-block;">
+                        Make First Prediction
+                    </a>
+                </div>
+            `;
+            updateStats([]);
+            return;
+        }
+        
+        const tableHTML = `
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Disease</th>
+                        <th>Confidence</th>
+                        <th>Symptoms</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${predictions.map((pred, idx) => `
+                        <tr>
+                            <td>${pred.timestamp}</td>
+                            <td><span class="disease-link">${pred.disease}</span></td>
+                            <td>
+                                <span class="confidence-badge ${getConfidenceClass(pred.confidence)}">
+                                    ${pred.confidence}%
+                                </span>
+                            </td>
+                            <td>${pred.symptoms ? pred.symptoms.length + ' symptoms' : '--'}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-small btn-delete" onclick="deletePrediction(${idx})">
+                                        Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <button class="button button-secondary clear-all-btn" onclick="clearAllHistory()">
+                🗑️ Clear All History
+            </button>
+        `;
+        
+        container.innerHTML = tableHTML;
+        updateStats(predictions);
+    }
+    
+    function getConfidenceClass(confidence) {
+        const conf = parseFloat(confidence);
+        if (conf >= 80) return 'confidence-high';
+        if (conf >= 60) return 'confidence-medium';
+        return 'confidence-low';
+    }
+    
+    function updateStats(predictions) {
+        document.getElementById('totalPredictions').textContent = predictions.length;
+        
+        if (predictions.length === 0) {
+            document.getElementById('averageConfidence').textContent = '0%';
+            document.getElementById('mostCommon').textContent = '--';
+            return;
+        }
+        
+        const avgConfidence = (predictions.reduce((sum, p) => sum + parseFloat(p.confidence), 0) / predictions.length).toFixed(1);
+        document.getElementById('averageConfidence').textContent = avgConfidence + '%';
+        
+        const diseaseCounts = {};
+        predictions.forEach(p => {
+            diseaseCounts[p.disease] = (diseaseCounts[p.disease] || 0) + 1;
+        });
+        
+        const mostCommon = Object.keys(diseaseCounts).reduce((a, b) => 
+            diseaseCounts[a] > diseaseCounts[b] ? a : b
+        );
+        document.getElementById('mostCommon').textContent = mostCommon;
+    }
+    
+    function deletePrediction(idx) {
+        if (confirm('Delete this prediction?')) {
+            const predictions = JSON.parse(localStorage.getItem('predictions') || '[]');
+            predictions.splice(idx, 1);
+            localStorage.setItem('predictions', JSON.stringify(predictions));
+            loadHistory();
+        }
+    }
+    
+    function clearAllHistory() {
+        if (confirm('Delete all predictions? This cannot be undone.')) {
+            localStorage.removeItem('predictions');
+            loadHistory();
+        }
+    }
+    
+    loadHistory();
+    
+    // Listen for storage changes
+    window.addEventListener('storage', loadHistory);
+</script>
+{% endblock %}

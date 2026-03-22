@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disease Prediction System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-container {
+            display: block;
+        }
+        
+        .symptoms-header {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .symptoms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        
+        .symptom-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .symptom-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+        
+        .symptom-group label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+            flex: 1;
+            user-select: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 5px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .result-item {
+            margin: 15px 0;
+            font-size: 15px;
+        }
+        
+        .confidence-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 0;
+        }
+        
+        .top-predictions {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .top-predictions h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+        
+        .prediction-disease {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .prediction-probability {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #667eea;
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .symptom-count {
+            color: #999;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Disease Prediction System</h1>
+        <p class="subtitle">Select your symptoms for accurate disease prediction</p>
+        
+        <form id="predictionForm" class="form-container">
+            <div class="symptoms-header">Select Symptoms:</div>
+            <div class="symptoms-grid" id="symptomsGrid"></div>
+            <div class="symptom-count" id="symptomCount">0 symptoms selected</div>
+            
+            <div class="button-group">
+                <button type="submit">🔍 Predict Disease</button>
+                <button type="button" class="reset-btn" id="resetBtn">Reset</button>
+            </div>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing symptoms...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <h2 id="resultTitle">🔍 Prediction Result</h2>
+            <div class="result-item">
+                <strong>Predicted Disease:</strong> <span id="resultDisease" style="font-size: 18px; color: #667eea; font-weight: bold;"></span>
+            </div>
+            <div class="result-item">
+                <strong>Confidence:</strong>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceFill" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="top-predictions" id="topPredictions"></div>
+        </div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('predictionForm');
+        const symptomsGrid = document.getElementById('symptomsGrid');
+        const errorDiv = document.getElementById('error');
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+        const resetBtn = document.getElementById('resetBtn');
+        const symptomCountDiv = document.getElementById('symptomCount');
+        
+        let symptoms = [];
+        
+        // Load features from backend
+        async function loadSymptoms() {
+            try {
+                const response = await fetch('/api/features');
+                const data = await response.json();
+                symptoms = data.features;
+                
+                // Create checkboxes for each symptom
+                symptoms.forEach(symptom => {
+                    const symptomGroup = document.createElement('div');
+                    symptomGroup.className = 'symptom-group';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = symptom;
+                    checkbox.value = '1';
+                    checkbox.id = 'symptom-' + symptom;
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = 'symptom-' + symptom;
+                    label.textContent = symptom.replace(/_/g, ' ');
+                    
+                    symptomGroup.appendChild(checkbox);
+                    symptomGroup.appendChild(label);
+                    symptomsGrid.appendChild(symptomGroup);
+                    
+                    // Update count when checkbox changes
+                    checkbox.addEventListener('change', updateSymptomCount);
+                });
+            } catch (error) {
+                showError('Failed to load symptoms: ' + error.message);
+            }
+        }
+        
+        function updateSymptomCount() {
+            const checked = symptomsGrid.querySelectorAll('input:checked').length;
+            symptomCountDiv.textContent = `${checked} symptom${checked !== 1 ? 's' : ''} selected`;
+        }
+        
+        resetBtn.addEventListener('click', () => {
+            form.reset();
+            resultDiv.classList.remove('show');
+            errorDiv.classList.remove('show');
+            updateSymptomCount();
+        });
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Validate at least one symptom is selected
+            const checked = symptomsGrid.querySelectorAll('input:checked');
+            if (checked.length === 0) {
+                showError('Please select at least one symptom');
+                return;
+            }
+            
+            // Clear previous results
+            errorDiv.classList.remove('show');
+            resultDiv.classList.remove('show');
+            
+            // Show loading
+            loadingDiv.classList.add('show');
+            
+            try {
+                // Collect form data
+                const data = {};
+                symptoms.forEach(symptom => {
+                    const checkbox = document.querySelector(`input[name="${symptom}"]`);
+                    data[symptom] = checkbox.checked ? 1 : 0;
+                });
+                
+                // Make prediction request
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Prediction failed');
+                }
+                
+                // Display results
+                displayResults(result);
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                loadingDiv.classList.remove('show');
+            }
+        });
+        
+        function displayResults(result) {
+            const resultDisease = document.getElementById('resultDisease');
+            const resultTitle = document.getElementById('resultTitle');
+            const confidenceFill = document.getElementById('confidenceFill');
+            const topPredictionsDiv = document.getElementById('topPredictions');
+            
+            const confidencePercent = (result.confidence * 100).toFixed(1);
+            
+            resultTitle.textContent = '✅ Prediction Result';
+            resultDisease.textContent = result.predicted_disease;
+            confidenceFill.style.width = confidencePercent + '%';
+            confidenceFill.textContent = confidencePercent + '%';
+            
+            // Display top predictions
+            let topPredictionsHTML = '<h3>Top Predictions:</h3>';
+            result.top_predictions.forEach((pred, index) => {
+                const prob = (pred.probability * 100).toFixed(1);
+                topPredictionsHTML += `
+                    <div class="prediction-item">
+                        <span class="prediction-disease">${index + 1}. ${pred.disease}</span>
+                        <span class="prediction-probability">${prob}%</span>
+                    </div>
+                `;
+            });
+            topPredictionsDiv.innerHTML = topPredictionsHTML;
+            
+            resultDiv.classList.add('show');
+        }
+        
+        function showError(message) {
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.classList.add('show');
+        }
+        
+        // Load symptoms on page load
+        loadSymptoms();
+    </script>
+</body>
+</html>
